@@ -7,16 +7,24 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "karma start"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/theeuropean/n-patch.git"
   },
-  "author": "",
+  "author": "debrisapron@gmail.com",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/theeuropean/n-patch/issues"
   },
-  "homepage": "https://github.com/theeuropean/n-patch"
+  "homepage": "https://github.com/theeuropean/n-patch",
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "karma": "^0.12.24",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^0.1.5",
+    "karma-mocha": "^0.1.9",
+    "mocha": "^2.0.1"
+  }
 }
