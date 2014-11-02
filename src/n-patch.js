@@ -107,6 +107,8 @@
             return context.createGain();
           case 'delay':
             return context.createDelay();
+          case 'osc':
+            return context.createOscillator();
           default:
             throw new Error("Unrecognized node type");
         }
@@ -176,7 +178,7 @@
 
     }
 
-    ['gain', 'input', 'output', 'delay'].forEach(function (type) {
+    ['gain', 'input', 'output', 'delay', 'osc'].forEach(function (type) {
       render[type] = function (name) {
         addNodeDef(type, name);
         return this;

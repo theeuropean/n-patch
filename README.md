@@ -4,9 +4,11 @@ A simple, opinionated wrapper library for joyful patching with the JavaScript We
 
 ## Roadmap
 
-- Make package work with Node.js
-- Tests
+- linting
+- docs
 - Rest of built in audio nodes
+- `start` goes to all oscillator nodes
+- JSON Configuration
 - Routing audio to params
 - Create own internal context
 - `destination` method
