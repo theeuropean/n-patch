@@ -2,11 +2,29 @@
 
 (function (root) {
 
-  root.nPatch = nPatch;
+  var nodeFactories = {
+    gain: function (context) {
+      return context.createGain();
+    },
+    input: function (context) {
+      return context.createGain();
+    },
+    output: function (context) {
+      return context.createGain();
+    },
+    delay: function (context) {
+      return context.createDelay();
+    },
+    osc: function (context) {
+      return context.createOscillator();
+    },
+    biquad: function (context) {
+      return context.createBiquadFilter();
+    }
+  };
 
-  function nPatch(context) {
+  function nPatch() {
 
-    context = context || nPatch.context;
     var nodeList = [];
     var currNode;
     var currExposition;
@@ -56,8 +74,9 @@
       return this;
     }
 
-    function render() {
+    function render(context) {
 
+      context = context || nPatch.context;
       var nodes = {};
 
       nodeList.forEach(addNode);
@@ -100,18 +119,9 @@
       }
 
       function getNodeFromType(type) {
-        switch(type) {
-          case 'input':
-          case 'output':
-          case 'gain':
-            return context.createGain();
-          case 'delay':
-            return context.createDelay();
-          case 'osc':
-            return context.createOscillator();
-          default:
-            throw new Error("Unrecognized node type");
-        }
+        var factory = nodeFactories[type];
+        if(factory) return factory(context);
+        throw new Error("Unrecognized node type");
       }
 
       function connectNode(nodeDef, index) {
@@ -178,12 +188,14 @@
 
     }
 
-    ['gain', 'input', 'output', 'delay', 'osc'].forEach(function (type) {
+    function addNodeTypeToRender(type) {
       render[type] = function (name) {
         addNodeDef(type, name);
         return this;
       };
-    });
+    }
+
+    Object.keys(nodeFactories).forEach(addNodeTypeToRender);
 
     render.expose = expose;
     render.as = as;
@@ -194,5 +206,8 @@
     return render;
 
   }
+
+  root.nPatch = nPatch;
+  root.nPatch.nodeFactories = nodeFactories;
 
 })(this);

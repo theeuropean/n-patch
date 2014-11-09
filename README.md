@@ -7,6 +7,7 @@ A simple, opinionated wrapper library for joyful patching with the JavaScript We
 - linting
 - docs
 - Rest of built in audio nodes
+- move context to `render`
 - `start` goes to all oscillator nodes
 - JSON Configuration
 - Routing audio to params
