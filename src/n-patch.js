@@ -2,36 +2,42 @@
 
 (function (root) {
 
+  var nPatch = {
+    patch: patch
+  };
   var nodeFactories = {};
 
-  addNativeNodeType('gain', 'Gain');
-  addNativeNodeType('delay', 'Delay');
+  addNativeNodeTypeFactory('gain', 'Gain');
+  addNativeNodeTypeFactory('delay', 'Delay');
   // addNativeNodeType('input', 'Gain');
   // addNativeNodeType('output', 'Gain');
   // addNativeNodeType('osc', 'Oscillator');
   // addNativeNodeType('biquad', 'BiquadFilter');
 
-  function addNativeNodeType(name, nativeNodeType) {
-    addNodeFactory(name, function (context) {
-      return context['create' + nativeNodeType]();
-    });
-  }
+  appendNodeCreationMethodsToObject(nPatch);
 
-  function addNodeFactory(name, factory) {
-    if(nodeFactories[name]) {
-      throw new Error('Cannot add node factory because one with the same name already exists');
-    }
-    nodeFactories[name] = factory;
-    return this;
-  }
+  root.nPatch = nPatch;
 
-  function createPatchContainer(nodeType, options) {
+  // Public methods
+
+  function patch(nodeType, options) {
 
     var lastNode;
     var input;
     var nodes = {};
 
     patch(nodeType, options);
+
+    var patchContainer = {
+      patch: patch,
+      input: input,
+      connect: connect,
+      nodes: nodes
+    };
+
+    appendNodeCreationMethodsToObject(patchContainer);
+
+    return patchContainer;
 
     // Public methods
 
@@ -89,25 +95,32 @@
       nodes[nodeName] = newNode;    
     }
 
-    // Reveal
+  }
 
-    return {
-      patch: patch,
-      gain: function () {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift('gain');
-        return patch.apply(this, args);
-      },
-      delay: function () {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift('delay');
-        return patch.apply(this, args);
-      },
-      input: input,
-      connect: connect,
-      nodes: nodes
-    };
+  // Private methods
 
+  function addNativeNodeTypeFactory(name, nativeNodeType) {
+    addNodeFactory(name, function (context) {
+      return context['create' + nativeNodeType]();
+    });
+  }
+
+  function addNodeFactory(name, factory) {
+    if(nodeFactories[name]) {
+      throw new Error('Cannot add node factory because one with the same name already exists');
+    }
+    nodeFactories[name] = factory;
+    return this;
+  }
+
+  function appendNodeCreationMethodsToObject(obj) {
+    Object.keys(nodeFactories).forEach(function (name) {
+      obj[name] = function () {
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift(name);
+        return obj.patch.apply(obj, args);
+      };
+    });
   }
 
   // function nPatch() {
@@ -293,20 +306,5 @@
   //   return render;
 
   // }
-
-  root.nPatch = {
-    patch: createPatchContainer,
-    gain: function () {
-      var args = Array.prototype.slice.call(arguments);
-      args.unshift('gain');
-      return createPatchContainer.apply(this, args);
-    },
-    delay: function () {
-      var args = Array.prototype.slice.call(arguments);
-      args.unshift('delay');
-      return createPatchContainer.apply(this, args);
-    },
-    nodeFactories: nodeFactories
-  };
 
 })(this);

@@ -6,15 +6,20 @@ A simple, opinionated wrapper library for joyful patching with the JavaScript We
 
 - linting
 - docs
+- param('foo').expose('name') instead of expose('foo', 'name')?
 - Rest of built in audio nodes
-- move context to `render`
-- `start` goes to all oscillator nodes
-- JSON Configuration
+- error message when exposing param with same name as method
+- `start` and `stop` methods that go to all source nodes
+- autostart option on sources, defaults to true
+- JSON Configuration with `program` method
 - Routing audio to params
 - Create own internal context
 - `destination` method
 - Make `set` & `expose` work with non-param values
 - `from` method
-- `node` method
+- Have patch accept an existing native node, patch or factory
+- `note`, `noteOn` and `noteOff` methods
+- `gate`, `gateOn`, `gateOff` and `trig` methods
+- `env` method for attaching envelopes seamlessly to audio params
 - Node cardinality
-- Node wrappers (mixWrap, polyWrap)
+- `poly` method - voice manager for everything connected underneath it. Need a clever way to differentiate between shared messages and allocated messages.
