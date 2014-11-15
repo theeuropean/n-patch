@@ -2,61 +2,58 @@
 
 (function (root) {
 
-  var nPatch = {
-    patch: patch
-  };
+  root.nPatch = nPatch;
+
   var nodeFactories = {};
 
-  addNativeNodeTypeFactory('gain', 'Gain');
-  addNativeNodeTypeFactory('delay', 'Delay');
-  // addNativeNodeType('input', 'Gain');
-  // addNativeNodeType('output', 'Gain');
-  // addNativeNodeType('osc', 'Oscillator');
-  // addNativeNodeType('biquad', 'BiquadFilter');
-
-  appendNodeCreationMethodsToObject(nPatch);
-
-  root.nPatch = nPatch;
+  addNativeNodeFactory('gain', 'Gain');
+  addNativeNodeFactory('delay', 'Delay');
+  addNativeNodeFactory('biquad', 'BiquadFilter');
+  addNativeNodeFactory('osc', 'Oscillator');
 
   // Public methods
 
-  function patch(nodeType, options) {
+  function nPatch() {
 
     var lastNode;
-    var input;
     var nodes = {};
+    var lastParamName;
 
-    patch(nodeType, options);
-
-    var patchContainer = {
+    var patcher = {
       patch: patch,
-      input: input,
       connect: connect,
-      nodes: nodes
+      param: param,
+      expose: expose,
+      set: set,
+      nodes: nodes,
+      start: start,
+      stop: stop
     };
 
-    appendNodeCreationMethodsToObject(patchContainer);
+    appendNodeCreationMethods();
 
-    return patchContainer;
+    return patcher;
 
     // Public methods
 
     function patch(nodeType, nodeName) {
+      patcher.lastParamName = null;
       var newNode = createNode(nodeType);
       registerNode(newNode, nodeType, nodeName);
-      if(!input) {
-        // TODO only set input if node is a waaNode that takes input
+      if(!patcher.input) {
+        // TODO only set input if node is a native node that takes input
         // or a patch container with an input property
-        input = newNode;
+        patcher.input = newNode;
       }
       if(lastNode && lastNode.connect) {
         lastNode.connect(newNode);
       }
       lastNode = newNode;
-      return this;
+      return patcher;
     }
 
     function connect(destination) {
+      // TODO handle named destination params e.g. 'gain.gain'
       if(typeof destination === 'string') {
         var destinationNode = nodes[destination];
         if(!destinationNode) {
@@ -67,10 +64,70 @@
       // TODO if destination node has an input property
       // connect to that
       lastNode.connect.apply(lastNode, arguments);
-      return this;
+      return patcher;
+    }
+
+    function param(paramName) {
+      verifyParam(paramName);
+      lastParamName = paramName;
+      return patcher;
+    }
+
+    function expose(exposedNameOrParamName, exposedName) {
+      var paramName;
+
+      if(lastParamName && !exposedName) {
+        exposedName = exposedNameOrParamName || lastParamName;
+        paramName = lastParamName;
+      }
+      else {
+        paramName = exposedNameOrParamName;
+        exposedName = exposedName || exposedNameOrParamName;
+      }
+
+      verifyParam(paramName);
+      verifyAvailable(exposedName);
+      patcher[exposedName] = lastNode[paramName];
+      return patcher;
+    }
+
+    function set(paramNameOrValue, value) {
+      var paramName = isSomething(value) ? paramNameOrValue : lastParamName;
+      verifyParam(paramName);
+      value = isSomething(value) ? value : paramNameOrValue;
+
+      if(isDefined(lastNode[paramName].value)) {
+        lastNode[paramName].value = value;        
+      }
+      else {
+        lastNode[paramName] = value;
+      }
+      return patcher;
+    }
+
+    function start() {
+      forEachNode(function (node) {
+        if(isDefined(node.start)) node.start();
+      });
+    }
+    
+    function stop() {
+      forEachNode(function (node) {
+        if(isDefined(node.stop)) node.stop();
+      });
     }
     
     // Private methods
+
+    function appendNodeCreationMethods() {
+      Object.keys(nodeFactories).forEach(function (name) {
+        patcher[name] = function () {
+          var args = Array.prototype.slice.call(arguments);
+          args.unshift(name);
+          return patcher.patch.apply(patcher, args);
+        };
+      });
+    }
 
     function createNode(nodeType) {
       var factory = nodeFactories[nodeType];
@@ -95,11 +152,32 @@
       nodes[nodeName] = newNode;    
     }
 
+    function verifyParam(paramName) {
+      if(isUndefined(lastNode[paramName])) {
+        throw new Error('Cannot set or expose param "' + paramName + '" because attribute is not present on current node');
+      }
+    }
+
+    function verifyAvailable(exposedParamName) {
+      if(isDefined(patcher[exposedParamName])) {
+        throw new Error('Cannot expose param with name "' + exposedParamName + '" because patcher already has attribute with the same name');
+      }
+    }
+
+    function forEachNode(callback) {
+      for(var nodeName in nodes) {
+        if(nodes.hasOwnProperty(nodeName)) {
+          var node = nodes[nodeName];
+          callback(node);
+        }
+      }
+    }
+
   }
 
   // Private methods
 
-  function addNativeNodeTypeFactory(name, nativeNodeType) {
+  function addNativeNodeFactory(name, nativeNodeType) {
     addNodeFactory(name, function (context) {
       return context['create' + nativeNodeType]();
     });
@@ -113,198 +191,20 @@
     return this;
   }
 
-  function appendNodeCreationMethodsToObject(obj) {
-    Object.keys(nodeFactories).forEach(function (name) {
-      obj[name] = function () {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift(name);
-        return obj.patch.apply(obj, args);
-      };
-    });
+  function isSomething(thing) {
+    return !isNothing(thing);
   }
 
-  // function nPatch() {
+  function isNothing(thing) {
+    return thing === null || isUndefined(thing);
+  }
 
-  //   var nodeList = [];
-  //   var currNode;
-  //   var currExposition;
+  function isDefined(thing) {
+    return !isUndefined(thing);
+  }
 
-  //   function addNodeDef(type, name) {
-  //     var node = {
-  //       type: type,
-  //       name: name
-  //     };
-  //     nodeList.push(node);
-  //     currNode = node;
-  //     currExposition = null;
-  //   }
-
-  //   function expose(param) {
-  //     var exposition = {
-  //       param: param
-  //     };
-  //     currNode.expose = currNode.expose || [];
-  //     currNode.expose.push(exposition);
-  //     currExposition = exposition;
-  //     return this;
-  //   }
-
-  //   function as(name) {
-  //     currExposition.as = name;
-  //     return this;
-  //   }
-
-  //   function _default(value) {
-  //     currExposition.default = value;
-  //     return this;
-  //   }
-
-  //   function connect(destination) {
-  //     currNode.connect = currNode.connect || [];
-  //     currNode.connect.push(destination);
-  //     return this;
-  //   }
-
-  //   function set(param, value) {
-  //     currNode.set = currNode.set || [];
-  //     currNode.set.push({
-  //       param: param,
-  //       value: value
-  //     });
-  //     return this;
-  //   }
-
-  //   function render(context) {
-
-  //     context = context || nPatch.context;
-  //     var nodes = {};
-
-  //     nodeList.forEach(addNode);
-  //     var inputNode = getInputNode();
-  //     var outputNode = getOutputNode();
-
-  //     nodeList.forEach(connectNode);
-  //     nodeList.forEach(exposeNodeParams);
-  //     nodeList.forEach(setNodeParams);
-
-  //     inputNode.connect = function (destination) {
-  //       outputNode.connect(destination);
-  //     };
-
-  //     inputNode.nodes = nodes;
-
-  //     return inputNode;
-
-  //     // Private functions
-
-  //     function nodeName(nodeDef) {
-  //       return (nodeDefIsString(nodeDef) || nodeDef.name || nodeDef.type) + 'Node';
-  //     }
-
-  //     function findNode(nodeDef) {
-  //       return nodes[nodeName(nodeDef)];
-  //     }
-
-  //     function nodeDefIsString(nodeDef) {
-  //       if(typeof nodeDef === 'string') {
-  //         return nodeDef;
-  //       }
-  //       return null;
-  //     }
-
-  //     function addNode(nodeDef) {
-  //       var nodeType = nodeDefIsString(nodeDef) || nodeDef.type || nodeDef.name;
-  //       var node = getNodeFromType(nodeType);
-  //       nodes[nodeName(nodeDef)] = node;
-  //     }
-
-  //     function getNodeFromType(type) {
-  //       var factory = nodeFactories[type];
-  //       if(factory) return factory(context);
-  //       throw new Error("Unrecognized node type");
-  //     }
-
-  //     function connectNode(nodeDef, index) {
-  //       var node = findNode(nodeDef);
-  //       if(nodeDef.connect) {
-  //         nodeDef.connect.forEach(function (destNodeName) {
-  //           node.connect(nodes[destNodeName + 'Node']);
-  //         });
-  //       }
-  //       if(index < (nodeList.length - 1)) {
-  //         node.connect(findNode(nodeList[index + 1]));
-  //       }
-  //     }
-
-  //     function exposeNodeParams(nodeDef) {
-  //       var node = findNode(nodeDef);
-  //       if(nodeDef.expose) {
-  //         nodeDef.expose.forEach(function (exposeDef) {
-  //           exposeNodeParam(node, exposeDef);
-  //         });
-  //       }    
-  //     }
-
-  //     function exposeNodeParam(node, exposeDef) {
-  //       var paramName;
-  //       var exposedName;
-  //       if(isString(exposeDef)) {
-  //         exposedName = paramName = exposeDef;
-  //       }
-  //       else {
-  //         paramName = exposeDef.param;
-  //         exposedName = exposeDef.as || paramName;
-  //         if(exposeDef.default) {
-  //           setNodeParam(node, paramName, exposeDef.default);
-  //         }
-  //       }
-  //       inputNode[exposedName] = node[paramName];      
-  //     }
-
-  //     function setNodeParams(nodeDef) {
-  //       var node = findNode(nodeDef);
-  //       if(nodeDef.set) {
-  //         nodeDef.set.forEach(function (setDef) {
-  //           setNodeParam(node, setDef.param, setDef.value);
-  //         });
-  //       }
-  //     }
-
-  //     function setNodeParam(node, paramName, value) {
-  //       node[paramName].value = value;
-  //     }
-
-  //     function isString(val) {
-  //       return typeof val === 'string';
-  //     }
-
-  //     function getInputNode() {
-  //       return findNode(nodeList[0]);
-  //     }
-
-  //     function getOutputNode() {
-  //       return findNode(nodeList[nodeList.length - 1]);
-  //     }
-
-  //   }
-
-  //   function addNodeTypeToRender(type) {
-  //     render[type] = function (name) {
-  //       addNodeDef(type, name);
-  //       return this;
-  //     };
-  //   }
-
-  //   Object.keys(nodeFactories).forEach(addNodeTypeToRender);
-
-  //   render.expose = expose;
-  //   render.as = as;
-  //   render.default = _default;
-  //   render.connect = connect;
-  //   render.set = set;
-
-  //   return render;
-
-  // }
+  function isUndefined(thing) {
+    return typeof thing === 'undefined';
+  }
 
 })(this);

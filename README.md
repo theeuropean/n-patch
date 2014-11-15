@@ -6,9 +6,21 @@ A simple, opinionated wrapper library for joyful patching with the JavaScript We
 
 - linting
 - docs
-- param('foo').expose('name') instead of expose('foo', 'name')?
-- Rest of built in audio nodes
-- error message when exposing param with same name as method
+- Nodes:
+  - AudioBufferSourceNode
+  - MediaElementAudioSourceNode
+  - AudioWorkerNode
+  - PannerNode
+  - StereoPannerNode
+  - ConvolverNode
+  - AnalyserNode
+  - ChannelSplitterNode
+  - ChannelMergerNode
+  - DynamicsCompressorNode
+  - WaveShaperNode
+  - OscillatorNode
+  - MediaStreamAudioSourceNode
+  - MediaStreamAudioDestinationNode
 - `start` and `stop` methods that go to all source nodes
 - autostart option on sources, defaults to true
 - JSON Configuration with `program` method
