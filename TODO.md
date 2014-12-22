@@ -5,8 +5,6 @@
   - AudioBufferSourceNode
   - PannerNode
   - StereoPannerNode
-  - ChannelSplitterNode
-  - ChannelMergerNode
   - DynamicsCompressorNode
   - WaveShaperNode
   - OscillatorNode
@@ -26,6 +24,8 @@
 ### Future
 
 - Nodes:
+  - ChannelSplitterNode
+  - ChannelMergerNode
   - MediaElementAudioSourceNode
   - AudioWorkerNode
   - AnalyserNode

@@ -101,6 +101,11 @@ describe('n-patch', function () {
     context.nodes[1].connect.should.have.been.calledWith(context.nodes[0]);
   });
 
+  it('can connect nodes to the context destination', function () {
+    nPatch().delay().dest();
+    context.nodes[0].connect.should.have.been.calledWith(context.destination);
+  });
+
   it('can expose an AudioParam with param and expose', function () {
     nPatch().delay().param('delayTime').expose().delayTime
       .should.equal(context.nodes[0].delayTime);
@@ -111,34 +116,40 @@ describe('n-patch', function () {
       .should.equal(context.nodes[0].delayTime);
   });
 
-  it('if no AudioParam currently specified it can use just expose to expose an AudioParam', function () {
+  it('can use just expose to expose an AudioParam if no AudioParam currently specified', function () {
     nPatch().delay().expose('delayTime').delayTime
       .should.equal(context.nodes[0].delayTime);
   });
 
-  it('it can use just expose to expose an AudioParam with a different name', function () {
+  it('can use just expose to expose an AudioParam with a different name', function () {
     nPatch().delay().expose('delayTime', 'time').time
       .should.equal(context.nodes[0].delayTime);
   });
 
-  it('it can set an AudioParam to a value with param and set', function () {
+  it('can set an AudioParam to a value with param and set', function () {
     nPatch().delay().param('delayTime').set(1);
     context.nodes[0].delayTime.value.should.equal(1);
   });
 
-  it('it can set an AudioParam to a value with just set', function () {
+  it('can set an AudioParam to a value with just set', function () {
     nPatch().delay().set('delayTime', 1);
     context.nodes[0].delayTime.value.should.equal(1);
   });
 
-  it('it can set a non-AudioParam property to a value with just set', function () {
+  it('can set a non-AudioParam property to a value with just set', function () {
     nPatch().biquad().set('type', 'highpass');
     context.nodes[0].type.should.equal('highpass');
   });
 
-  it('it can set a non-AudioParam property to a value with just set', function () {
+  it('can set a non-AudioParam property to a value with just set', function () {
     nPatch().biquad().set('type', 'highpass');
     context.nodes[0].type.should.equal('highpass');
+  });
+
+  it('can set params of either type with a config object in the node creation function', function () {
+    nPatch().osc({ frequency: 880, type: 'sawtooth' });
+    context.nodes[0].type.should.equal('sawtooth');
+    context.nodes[0].frequency.value.should.equal(880);
   });
 
   it('can start and stop all the source nodes in a patch', function () {

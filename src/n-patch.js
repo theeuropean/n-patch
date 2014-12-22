@@ -22,6 +22,7 @@
     var patcher = {
       patch: patch,
       connect: connect,
+      dest: dest,
       param: param,
       expose: expose,
       set: set,
@@ -36,7 +37,15 @@
 
     // Public methods
 
-    function patch(nodeType, nodeName) {
+    function patch(nodeType, nodeNameOrParams, params) {
+      var nodeName;
+      if(isString(nodeNameOrParams)) {
+        nodeName = nodeNameOrParams;
+      }
+      else {
+        params = params || nodeNameOrParams;
+      }
+
       patcher.lastParamName = null;
       var newNode = createNode(nodeType);
       registerNode(newNode, nodeType, nodeName);
@@ -49,12 +58,21 @@
         lastNode.connect(newNode);
       }
       lastNode = newNode;
+
+      if(params) {
+        for(var param in params) {
+          if(params.hasOwnProperty(param)) {
+            set(param, params[param]);
+          }
+        }
+      }
+
       return patcher;
     }
 
     function connect(destination) {
       // TODO handle named destination params e.g. 'gain.gain'
-      if(typeof destination === 'string') {
+      if(isString(destination)) {
         var destinationNode = nodes[destination];
         if(!destinationNode) {
           throw new Error('Unrecognized node name');
@@ -64,6 +82,11 @@
       // TODO if destination node has an input property
       // connect to that
       lastNode.connect.apply(lastNode, arguments);
+      return patcher;
+    }
+
+    function dest() {
+      lastNode.connect(nPatch.context.destination);
       return patcher;
     }
 
@@ -109,12 +132,14 @@
       forEachNode(function (node) {
         if(isDefined(node.start)) node.start();
       });
+      return patcher;
     }
     
     function stop() {
       forEachNode(function (node) {
         if(isDefined(node.stop)) node.stop();
       });
+      return patcher;
     }
     
     // Private methods
@@ -189,6 +214,10 @@
     }
     nodeFactories[name] = factory;
     return this;
+  }
+
+  function isString(thing) {
+    return typeof thing === 'string';
   }
 
   function isSomething(thing) {
